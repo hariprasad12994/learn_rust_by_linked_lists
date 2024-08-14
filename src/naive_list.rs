@@ -80,6 +80,8 @@ impl List {
         // v
         // head = empty
         // temporary variable to which replace is done is dropped at the end of scope
+        // if list is not empty move the head, return the temporarily exchanged head.node.elem
+        // wrapped in option else if list was empty return none for safe return value
         match mem::replace(&mut self.head, Link::Empty) {
             Link::Empty => { None },
             Link::More(node) => {
