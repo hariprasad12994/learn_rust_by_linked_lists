@@ -91,3 +91,58 @@ impl List {
         }
     }
 }
+
+impl Drop for List {
+    fn drop(&mut self) {
+        // Due to recursive nature of the data structure the list's 
+        // implicit drop impl inserted by the compiler uses recursion 
+        // to drop the nodes. For a relatively large list, this 
+        // might cause a stackoverflow 
+        // Illustation: https://play.rust-lang.org/?version=stable&mode=debug&edition=2018&gist=380d5360a9150eb78bc5ff82a49ba74d
+        // Hence an iterative version, which take one node at a time
+        // replaces the head into a temporary local variable and
+        // moves head to the next node, thereby dropping the local
+        // variable at the end of scope, the let statement abstracts 
+        // away the match required for ending the loop for checking
+        // the end of list
+        let mut walker = mem::replace(&mut self.head, Link::Empty);
+        while let Link::More(mut boxed_node) = walker {
+            walker = mem::replace(&mut boxed_node.next, Link::Empty);
+        }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    #[test]
+    fn basics() {
+        use super::List;
+
+        let mut list = List::new();
+
+        // Check empty list behaves right
+        assert_eq!(list.pop(), None);
+
+        // Populate list
+        list.push(1);
+        list.push(2);
+        list.push(3);
+
+        // Check normal removal
+        assert_eq!(list.pop(), Some(3));
+        assert_eq!(list.pop(), Some(2));
+
+        // Push some more just to make sure nothing's corrupted
+        list.push(4);
+        list.push(5);
+
+        // Check normal removal
+        assert_eq!(list.pop(), Some(5));
+        assert_eq!(list.pop(), Some(4));
+
+        // Check exhaustion
+        assert_eq!(list.pop(), Some(1));
+        assert_eq!(list.pop(), None);
+    }
+}
+
